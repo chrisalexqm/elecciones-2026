@@ -44,18 +44,25 @@ const HEADERS = {
   'Sec-Fetch-Site': 'same-origin',
 }
 
-async function fetchWithRetry(url, label, retries = 3, delay = 1000) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function fetchWithRetry(url, label, retries = 5, delay = 2000) {
   let lastError
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, { headers: HEADERS })
+      const text = await res.text()
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
+      // ONPE sometimes returns HTML error pages instead of JSON
+      if (text.trim().startsWith('<')) throw new Error('HTML response instead of JSON')
+      const json = JSON.parse(text)
       return json.data
     } catch (e) {
       lastError = e
       if (i < retries - 1) {
-        await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)))
+        const wait = delay * Math.pow(2, i)
+        console.log(`  Retry ${i + 1}/${retries} for ${label} in ${wait}ms...`)
+        await sleep(wait)
       }
     }
   }
@@ -80,6 +87,9 @@ async function main() {
   for (const dep of departamentos) {
     idx++
     console.log(`[${idx}/25] ${dep.nombre}`)
+    if (idx > 1) {
+      await sleep(1500)
+    }
     const [totales, participantes] = await Promise.all([
       fetchTotales(dep.ubigeo),
       fetchParticipantes(dep.ubigeo),

@@ -7,9 +7,15 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
-  fetch:
+  fetch-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -18,19 +24,46 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
+          cache: npm
 
       - name: Fetch data
         run: node scripts/fetch-data.mjs
 
       - name: Commit and push if changed
+        id: commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/data.json
           if git diff --cached --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
             echo "No changes to commit"
           else
             git commit -m "chore: update ONPE data [$(date -u +%Y-%m-%d_%H:%M:%S)]"
             git push
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Install dependencies
+        if: steps.commit.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Build
+        if: steps.commit.outputs.changed == 'true'
+        run: npm run build
+
+      - name: Setup Pages
+        if: steps.commit.outputs.changed == 'true'
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: steps.commit.outputs.changed == 'true'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        if: steps.commit.outputs.changed == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4

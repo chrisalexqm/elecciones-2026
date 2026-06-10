@@ -8,6 +8,7 @@ export function useOnpe() {
   const progreso = ref(0)
   const resultados = ref<RegionResult[]>([])
   const totalesRaw = ref<Totales[]>([])
+  const timestamp = ref<string>('')
 
   const totalActasContabilizadas = computed(() => {
     return totalesRaw.value.reduce((sum: number, t: Totales) => sum + t.contabilizadas, 0)
@@ -141,6 +142,7 @@ export function useOnpe() {
       const data = await res.json()
       resultados.value = data.resultados as RegionResult[]
       totalesRaw.value = data.totalesRaw as Totales[]
+      timestamp.value = data.timestamp as string
       cargandoRegion.value = ''
       progreso.value = 25
     } catch (e) {
@@ -184,6 +186,7 @@ export function useOnpe() {
     totalVotosKeikoContado,
     ventajaConteo,
     ventajaTotal,
+    timestamp,
     cargarDatos,
   }
 }

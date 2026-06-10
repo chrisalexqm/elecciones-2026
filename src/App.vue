@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useOnpe } from './composables/useOnpe'
 import type { RegionResult } from './types'
 
@@ -41,6 +41,7 @@ const {
   totalExtraRobertoPend,
   totalExtraKeikoEnvJee,
   totalExtraKeikoPend,
+  timestamp,
   cargarDatos,
 } = useOnpe()
 
@@ -52,18 +53,20 @@ function isTop3EnviadasJee(region: string): boolean {
   return top3EnviadasJee.value.some((t) => t.region === region)
 }
 
-const timestamp = ref('')
+const formattedTimestamp = computed(() => {
+  if (!timestamp.value) return ''
+  const d = new Date(timestamp.value)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `ACTUALIZADO AL ${dd}/${mm}/${yyyy} A LAS ${hh}:${min}:${ss}`
+})
 
 onMounted(() => {
   cargarDatos()
-  const now = new Date()
-  const dd = String(now.getDate()).padStart(2, '0')
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  const yyyy = now.getFullYear()
-  const hh = String(now.getHours()).padStart(2, '0')
-  const min = String(now.getMinutes()).padStart(2, '0')
-  const ss = String(now.getSeconds()).padStart(2, '0')
-  timestamp.value = `ACTUALIZADO AL ${dd}/${mm}/${yyyy} A LAS ${hh}:${min}:${ss} P.M.`
 })
 
 function fmtNum(n: number): string {
@@ -126,7 +129,7 @@ function fmtPct(n: number): string {
             </ul>
           </div>
         </div>
-        <p class="mt-3 text-xs font-bold uppercase tracking-wide text-gray-500">{{ timestamp }}</p>
+        <p class="mt-3 text-xs font-bold uppercase tracking-wide text-gray-500">{{ formattedTimestamp }}</p>
       </div>
 
       <Transition name="fade">
